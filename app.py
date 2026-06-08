@@ -142,6 +142,7 @@ elif menu == "View Medicines":
 
     # Keep header row (Streamlit table)
     st.dataframe(df, use_container_width=True)
+    df = df.reset_index(drop=True)
 
     st.markdown("### Manage Medicines")
 

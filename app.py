@@ -131,8 +131,61 @@ elif menu == "Add Medicine":
 
         st.success("Medicine Added Successfully")
 # ---------------- VIEW MEDICINES (FIXED COLUMN ISSUE) ----------------
-you didn't provide me actions column and in actions column provide edit and delete both features and don't remove heading row               
+elif menu == "View Medicines":
 
+    st.header("Inventory")
+
+    df = pd.read_sql_query(
+        "SELECT * FROM medicines",
+        conn
+    )
+
+    # Keep header row (Streamlit table)
+    st.dataframe(df, use_container_width=True)
+
+    st.markdown("### Manage Medicines")
+
+    for i, row in df.iterrows():
+
+        col1, col2, col3, col4, col5 = st.columns([1, 3, 2, 2, 3])
+
+        with col1:
+            st.write(row["id"])
+
+        with col2:
+            st.write(row["name"])
+
+        with col3:
+            st.write(row["quantity"])
+
+        with col4:
+            st.write(row["price"])
+
+        with col5:
+
+            btn1, btn2 = st.columns(2)
+
+            # EDIT BUTTON
+            with btn1:
+                if st.button("✏️ Edit", key=f"edit_{row['id']}"):
+
+                    st.session_state["edit_id"] = row["id"]
+                    st.session_state["edit_name"] = row["name"]
+                    st.session_state["edit_qty"] = row["quantity"]
+                    st.session_state["edit_price"] = row["price"]
+                    st.session_state["edit_expiry"] = row["expiry_date"]
+
+            # DELETE BUTTON
+            with btn2:
+                if st.button("🗑 Delete", key=f"delete_{row['id']}"):
+
+                    cursor.execute(
+                        "DELETE FROM medicines WHERE id=?",
+                        (row["id"],)
+                    )
+                    conn.commit()
+                    st.success(f"{row['name']} deleted successfully")
+                    st.rerun()
 # ---------------- BILLING SYSTEM ----------------
 elif menu == "Billing System":
 

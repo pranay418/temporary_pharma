@@ -181,6 +181,35 @@ elif menu == "View Medicines":
                     conn.commit()
                     st.success("Medicine deleted successfully!")
                     st.rerun()
+if "edit_id" in st.session_state:
+
+    st.subheader("Edit Medicine")
+
+    new_name = st.text_input("Name", st.session_state["edit_name"])
+    new_qty = st.number_input("Quantity", value=st.session_state["edit_qty"])
+    new_price = st.number_input("Price", value=st.session_state["edit_price"])
+    new_expiry = st.text_input("Expiry Date", st.session_state["edit_expiry"])
+
+    if st.button("Update Medicine"):
+
+        cursor.execute("""
+            UPDATE medicines
+            SET name=?, quantity=?, price=?, expiry_date=?
+            WHERE id=?
+        """, (
+            new_name,
+            new_qty,
+            new_price,
+            new_expiry,
+            st.session_state["edit_id"]
+        ))
+
+        conn.commit()
+
+        st.success("Medicine updated successfully!")
+
+        del st.session_state["edit_id"]
+        st.rerun()                    
 
 # ---------------- BILLING SYSTEM ----------------
 elif menu == "Billing System":

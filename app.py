@@ -134,7 +134,7 @@ elif menu == "Add Medicine":
 elif menu == "View Medicines":
 
     st.header("Inventory")
-    df = df.reset_index(drop=True)
+     df = df.reset_index(drop=True)
 
     df = pd.read_sql_query(
         "SELECT * FROM medicines",

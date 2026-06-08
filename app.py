@@ -93,26 +93,43 @@ if menu == "Dashboard":
 # ---------------- ADD MEDICINE ----------------
 elif menu == "Add Medicine":
 
-    st.header("➕ Add Medicine")
+    st.header("Add Medicine")
 
     name = st.text_input("Medicine Name")
-    quantity = st.number_input("Quantity", min_value=0)
-    price = st.number_input("Price", min_value=0.0)
-    expiry = st.date_input("Expiry Date")
+
+    quantity = st.number_input(
+        "Quantity",
+        min_value=0
+    )
+
+    price = st.number_input(
+        "Price",
+        min_value=0.0
+    )
+
+    expiry = st.date_input(
+        "Expiry Date"
+    )
 
     if st.button("Add Medicine"):
 
-        location = ai_place(name)
-
-        cursor.execute("""
-            INSERT INTO medicines (name, quantity, price, expiry_date, location)
-            VALUES (?, ?, ?, ?, ?)
-        """, (name, quantity, price, str(expiry), location))
+        cursor.execute(
+            """
+            INSERT INTO medicines
+            (name, quantity, price, expiry_date)
+            VALUES (?, ?, ?, ?)
+            """,
+            (
+                name,
+                quantity,
+                price,
+                str(expiry)
+            )
+        )
 
         conn.commit()
 
-        st.success(f"Added Successfully → Stored at {location}")
-
+        st.success("Medicine Added Successfully")
 # ---------------- VIEW MEDICINES (FIXED COLUMN ISSUE) ----------------
 elif menu == "View Medicines":
 

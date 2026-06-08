@@ -116,16 +116,54 @@ elif menu == "Add Medicine":
 # ---------------- VIEW MEDICINES (FIXED COLUMN ISSUE) ----------------
 elif menu == "View Medicines":
 
-    st.header("📦 Inventory")
+    st.header("Inventory")
 
     df = pd.read_sql_query("SELECT * FROM medicines", conn)
 
-    # remove unwanted index display & clean view
-    # clean view
-    df = df[["Id", "name", "quantity", "price", "expiry_date"]]
+    if len(df) == 0:
+        st.info("No medicines found")
+    else:
 
-    st.dataframe(df)
-   
+        for i, row in df.iterrows():
+
+            col1, col2, col3, col4, col5, col6 = st.columns([1, 3, 2, 2, 2, 3])
+
+            with col1:
+                st.write(row["id"])
+
+            with col2:
+                st.write(row["name"])
+
+            with col3:
+                st.write(row["quantity"])
+
+            with col4:
+                st.write(row["price"])
+
+            with col5:
+                st.write(row["expiry_date"])
+
+            with col6:
+
+                # EDIT BUTTON
+                if st.button("✏️ Edit", key=f"edit_{row['id']}"):
+
+                    st.session_state["edit_id"] = row["id"]
+                    st.session_state["edit_name"] = row["name"]
+                    st.session_state["edit_qty"] = row["quantity"]
+                    st.session_state["edit_price"] = row["price"]
+                    st.session_state["edit_expiry"] = row["expiry_date"]
+
+                # DELETE BUTTON
+                if st.button("🗑️ Delete", key=f"del_{row['id']}"):
+
+                    cursor.execute(
+                        "DELETE FROM medicines WHERE id=?",
+                        (row["id"],)
+                    )
+                    conn.commit()
+                    st.success("Medicine deleted successfully!")
+                    st.rerun()
 
 # ---------------- BILLING SYSTEM ----------------
 elif menu == "Billing System":

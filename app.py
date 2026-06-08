@@ -134,6 +134,7 @@ elif menu == "Add Medicine":
 elif menu == "View Medicines":
 
     st.header("Inventory")
+    df = df.reset_index(drop=True)
 
     df = pd.read_sql_query(
         "SELECT * FROM medicines",
@@ -143,7 +144,7 @@ elif menu == "View Medicines":
     # Keep header row (Streamlit table)
     st.dataframe(df, use_container_width=True)
     st.markdown("### Manage Medicines")
-    df = df.reset_index(drop=True)
+
     for i, row in df.iterrows():
 
         col1, col2, col3, col4, col5 = st.columns([1, 3, 2, 2, 3])

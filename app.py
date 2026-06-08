@@ -3,7 +3,7 @@ import pandas as pd
 import sqlite3
 from datetime import datetime, date
 
-# ---------------- DB ----------------
+# ---------------- DATABASE ----------------
 conn = sqlite3.connect("pharmacy.db", check_same_thread=False)
 cursor = conn.cursor()
 
@@ -33,10 +33,41 @@ conn.commit()
 st.set_page_config(page_title="Smart Pharmacy System")
 st.title("💊 Smart Pharmacy System (AI + Billing + Reports)")
 
+# ---------------- AI: STORAGE LOCATION ----------------
+def ai_place(medicine_name):
+    name = medicine_name.lower()
+
+    if any(x in name for x in ["paracetamol", "dolo", "crocin"]):
+        return "Drawer A1 - Fever"
+    elif any(x in name for x in ["metformin", "insulin", "glimepiride"]):
+        return "Drawer B1 - Diabetes"
+    elif any(x in name for x in ["ibuprofen", "diclofenac", "aspirin"]):
+        return "Drawer A2 - Pain Relief"
+    elif any(x in name for x in ["amoxicillin", "azithromycin"]):
+        return "Drawer C1 - Antibiotics"
+    else:
+        return "Drawer D1 - General"
+
+# ---------------- AI: DISEASE → MEDICINE ----------------
+disease_map = {
+    "fever": ["Paracetamol", "Dolo 650", "Crocin"],
+    "diabetes": ["Metformin", "Insulin"],
+    "pain": ["Ibuprofen", "Aspirin"],
+    "infection": ["Amoxicillin", "Azithromycin"]
+}
+
 # ---------------- MENU ----------------
 menu = st.sidebar.selectbox(
     "Menu",
-    ["Dashboard", "Add Medicine", "View Medicines", "Billing System", "Daily Reports", "Sales History"]
+    [
+        "Dashboard",
+        "Add Medicine",
+        "View Medicines",
+        "Billing System",
+        "Daily Reports",
+        "Sales History",
+        "Disease AI Assistant"
+    ]
 )
 
 # ---------------- DASHBOARD ----------------
@@ -49,6 +80,7 @@ if menu == "Dashboard":
     st.metric("Total Medicines", len(df))
 
     if len(df) > 0:
+
         low_stock = df[df["quantity"] < 10]
 
         st.subheader("⚠️ Low Stock Alerts")
@@ -67,9 +99,10 @@ elif menu == "Add Medicine":
     quantity = st.number_input("Quantity", min_value=0)
     price = st.number_input("Price", min_value=0.0)
     expiry = st.date_input("Expiry Date")
-    location = st.text_input("Location (optional)", "Auto Assigned")
 
     if st.button("Add Medicine"):
+
+        location = ai_place(name)
 
         cursor.execute("""
             INSERT INTO medicines (name, quantity, price, expiry_date, location)
@@ -77,14 +110,19 @@ elif menu == "Add Medicine":
         """, (name, quantity, price, str(expiry), location))
 
         conn.commit()
-        st.success("Medicine Added Successfully")
 
-# ---------------- VIEW ----------------
+        st.success(f"Added Successfully → Stored at {location}")
+
+# ---------------- VIEW MEDICINES (FIXED COLUMN ISSUE) ----------------
 elif menu == "View Medicines":
 
     st.header("📦 Inventory")
 
     df = pd.read_sql_query("SELECT * FROM medicines", conn)
+
+    # remove unwanted index display & clean view
+    df = df.loc[:, ["name", "quantity", "price", "expiry_date", "location"]]
+
     st.dataframe(df)
 
 # ---------------- BILLING SYSTEM ----------------
@@ -94,45 +132,48 @@ elif menu == "Billing System":
 
     df = pd.read_sql_query("SELECT * FROM medicines", conn)
 
-    medicine_list = df["name"].tolist()
+    if len(df) == 0:
+        st.warning("No medicines available")
+    else:
 
-    selected_medicine = st.selectbox("Select Medicine", medicine_list)
+        medicine_list = df["name"].tolist()
 
-    qty = st.number_input("Quantity", min_value=1)
+        selected_medicine = st.selectbox("Select Medicine", medicine_list)
+        qty = st.number_input("Quantity", min_value=1)
 
-    if st.button("Generate Bill"):
+        if st.button("Generate Bill"):
 
-        medicine = df[df["name"] == selected_medicine].iloc[0]
+            medicine = df[df["name"] == selected_medicine].iloc[0]
 
-        if medicine["quantity"] >= qty:
+            if medicine["quantity"] >= qty:
 
-            total = qty * medicine["price"]
+                total = qty * medicine["price"]
 
-            # reduce stock
-            cursor.execute("""
-                UPDATE medicines
-                SET quantity = quantity - ?
-                WHERE name = ?
-            """, (qty, selected_medicine))
+                # reduce stock
+                cursor.execute("""
+                    UPDATE medicines
+                    SET quantity = quantity - ?
+                    WHERE name = ?
+                """, (qty, selected_medicine))
 
-            # save sale
-            cursor.execute("""
-                INSERT INTO sales (medicine_name, quantity, total_price, sale_date)
-                VALUES (?, ?, ?, ?)
-            """, (selected_medicine, qty, total, str(date.today())))
+                # save sale
+                cursor.execute("""
+                    INSERT INTO sales (medicine_name, quantity, total_price, sale_date)
+                    VALUES (?, ?, ?, ?)
+                """, (selected_medicine, qty, total, str(date.today())))
 
-            conn.commit()
+                conn.commit()
 
-            st.success("Bill Generated Successfully 💰")
-            st.info(f"Total Amount: ₹{total}")
+                st.success("Bill Generated Successfully 💰")
+                st.info(f"Total Amount: ₹{total}")
 
-        else:
-            st.error("Not Enough Stock!")
+            else:
+                st.error("Not Enough Stock!")
 
 # ---------------- DAILY REPORTS ----------------
 elif menu == "Daily Reports":
 
-    st.header("📊 Daily Sales Report")
+    st.header("📊 Daily Report")
 
     today = str(date.today())
 
@@ -140,24 +181,40 @@ elif menu == "Daily Reports":
 
     today_sales = df[df["sale_date"] == today]
 
-    total_revenue = today_sales["total_price"].sum() if len(today_sales) > 0 else 0
-    total_items = today_sales["quantity"].sum() if len(today_sales) > 0 else 0
+    revenue = today_sales["total_price"].sum() if len(today_sales) > 0 else 0
+    items = today_sales["quantity"].sum() if len(today_sales) > 0 else 0
 
-    st.metric("Total Revenue Today (₹)", total_revenue)
-    st.metric("Total Items Sold", total_items)
+    st.metric("Revenue Today (₹)", revenue)
+    st.metric("Items Sold", items)
 
-    st.subheader("Today's Sales")
-
-    if len(today_sales) > 0:
-        st.dataframe(today_sales)
-    else:
-        st.warning("No sales today")
+    st.dataframe(today_sales)
 
 # ---------------- SALES HISTORY ----------------
 elif menu == "Sales History":
 
-    st.header("🧾 All Sales History")
+    st.header("🧾 Sales History")
 
     df = pd.read_sql_query("SELECT * FROM sales ORDER BY id DESC", conn)
 
     st.dataframe(df)
+
+# ---------------- DISEASE AI ----------------
+elif menu == "Disease AI Assistant":
+
+    st.header("🧠 Disease → Medicine AI System")
+
+    disease = st.text_input("Enter Disease (fever, diabetes, pain, infection)")
+
+    if disease:
+
+        disease = disease.lower()
+
+        if disease in disease_map:
+
+            st.success("Recommended Medicines:")
+
+            for med in disease_map[disease]:
+                st.write("💊", med)
+
+        else:
+            st.warning("No AI data available for this disease yet")

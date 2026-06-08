@@ -142,10 +142,8 @@ elif menu == "View Medicines":
 
     # Keep header row (Streamlit table)
     st.dataframe(df, use_container_width=True)
-    df = df.reset_index(drop=True)
-
     st.markdown("### Manage Medicines")
-
+    df = df.reset_index(drop=True)
     for i, row in df.iterrows():
 
         col1, col2, col3, col4, col5 = st.columns([1, 3, 2, 2, 3])

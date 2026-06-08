@@ -121,7 +121,7 @@ elif menu == "View Medicines":
     df = pd.read_sql_query("SELECT * FROM medicines", conn)
 
     # remove unwanted index display & clean view
-    df = df.loc[:, ["name", "quantity", "price", "expiry_date", "location"]]
+    df = df.loc[:, ["name", "quantity", "price", "expiry_date"]]
 
     st.dataframe(df)
 
